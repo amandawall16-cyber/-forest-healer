@@ -6,114 +6,129 @@
 
 <style>
 body {
-    font-family: -apple-system;
+    margin: 0;
     background: #2f5e46;
+    overflow: hidden;
+    font-family: -apple-system;
     color: white;
-    text-align: center;
 }
 
-h1 { margin-top: 10px; }
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    padding: 20px;
-}
-
-.tile {
+#game {
+    position: relative;
+    width: 100vw;
+    height: 80vh;
     background: #3e6b4f;
-    border-radius: 10px;
-    padding: 20px;
-    font-size: 20px;
 }
 
-.empty { background: #355f45; }
-.growing { background: #6bbf7a; }
-.ready { background: #b6e388; }
+.player {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: pink;
+    border-radius: 50%;
+}
+
+.object {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(3, 80px);
+    gap: 10px;
+    justify-content: center;
+    margin-top: 10px;
+}
 
 button {
-    padding: 10px;
-    border-radius: 10px;
+    padding: 15px;
     border: none;
+    border-radius: 10px;
     background: #7ecf9a;
-    margin: 10px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🌿 Forest Healer</h1>
-<h2>Essence: <span id="essence">10</span> ✨</h2>
+<h2 style="text-align:center;">🌿 Forest Healer</h2>
+<p style="text-align:center;">Essence: <span id="essence">0</span> ✨</p>
 
-<p>Tap a tile to plant (cost 2) → wait → harvest</p>
+<div id="game"></div>
 
-<div class="grid" id="grid"></div>
+<div class="controls">
+    <div></div>
+    <button onclick="move(0,-20)">⬆️</button>
+    <div></div>
+    <button onclick="move(-20,0)">⬅️</button>
+    <button onclick="interact()">✨</button>
+    <button onclick="move(20,0)">➡️</button>
+    <div></div>
+    <button onclick="move(0,20)">⬇️</button>
+    <div></div>
+</div>
 
 <script>
 
-let essence = 10;
-let grid = JSON.parse(localStorage.getItem("grid")) || Array(16).fill(null);
+let player = { x: 100, y: 100 };
+let essence = 0;
+
+let objects = [
+    { x: 200, y: 150, type: "herb" },
+    { x: 300, y: 250, type: "tree" },
+    { x: 150, y: 300, type: "herb" }
+];
 
 function draw() {
-    document.getElementById("essence").innerText = essence;
-    let gridEl = document.getElementById("grid");
-    gridEl.innerHTML = "";
+    const game = document.getElementById("game");
+    game.innerHTML = "";
 
-    grid.forEach((tile, i) => {
-        let div = document.createElement("div");
-        div.classList.add("tile");
+    // player
+    let p = document.createElement("div");
+    p.className = "player";
+    p.style.left = player.x + "px";
+    p.style.top = player.y + "px";
+    game.appendChild(p);
 
-        if (!tile) {
-            div.classList.add("empty");
-            div.innerText = "🟫";
-        } else if (tile.stage === "growing") {
-            div.classList.add("growing");
-            div.innerText = "🌱";
-        } else {
-            div.classList.add("ready");
-            div.innerText = "🌾";
-        }
+    // objects
+    objects.forEach((obj, i) => {
+        let o = document.createElement("div");
+        o.className = "object";
+        o.style.left = obj.x + "px";
+        o.style.top = obj.y + "px";
 
-        div.onclick = () => clickTile(i);
-        gridEl.appendChild(div);
+        if (obj.type === "herb") o.innerText = "🌿";
+        if (obj.type === "tree") o.innerText = "🌳";
+
+        game.appendChild(o);
     });
+
+    document.getElementById("essence").innerText = essence;
 }
 
-function clickTile(i) {
-    let tile = grid[i];
-
-    if (!tile && essence >= 2) {
-        essence -= 2;
-        grid[i] = { stage: "growing" };
-        
-        setTimeout(() => {
-            grid[i].stage = "ready";
-            save();
-            draw();
-        }, 4000);
-
-    } else if (tile && tile.stage === "ready") {
-        essence += 5;
-        grid[i] = null;
-    }
-
-    save();
+function move(dx, dy) {
+    player.x += dx;
+    player.y += dy;
     draw();
 }
 
-function save() {
-    localStorage.setItem("grid", JSON.stringify(grid));
-    localStorage.setItem("essence", essence);
+function interact() {
+    objects = objects.filter(obj => {
+        let dist = Math.hypot(player.x - obj.x, player.y - obj.y);
+
+        if (dist < 50) {
+            if (obj.type === "herb") essence += 5;
+            if (obj.type === "tree") essence += 2;
+            return false;
+        }
+        return true;
+    });
+
+    draw();
 }
 
-function load() {
-    let e = localStorage.getItem("essence");
-    if (e) essence = parseInt(e);
-}
-
-load();
 draw();
 
 </script>
