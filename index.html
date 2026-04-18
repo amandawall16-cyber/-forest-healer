@@ -1,39 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Forest Healer</title>
 
 <style>
 body {
-    margin: 0;
     font-family: -apple-system;
-    background: linear-gradient(#1f3d2b, #3e6b4f);
+    background: #2f5e46;
     color: white;
     text-align: center;
 }
 
-.container {
+h1 { margin-top: 10px; }
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
     padding: 20px;
 }
 
-button {
-    width: 90%;
-    padding: 15px;
-    margin: 8px;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
+.tile {
+    background: #3e6b4f;
+    border-radius: 10px;
+    padding: 20px;
+    font-size: 20px;
 }
 
-.primary { background: #7ecf9a; }
-.secondary { background: #2f5e46; color: white; }
+.empty { background: #355f45; }
+.growing { background: #6bbf7a; }
+.ready { background: #b6e388; }
 
-.card {
-    background: rgba(0,0,0,0.2);
+button {
     padding: 10px;
-    border-radius: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #7ecf9a;
     margin: 10px;
 }
 </style>
@@ -41,103 +44,77 @@ button {
 
 <body>
 
-<div class="container">
-
 <h1>🌿 Forest Healer</h1>
+<h2>Essence: <span id="essence">10</span> ✨</h2>
 
-<h2>Essence: <span id="essence">0</span> ✨</h2>
+<p>Tap a tile to plant (cost 2) → wait → harvest</p>
 
-<div class="card">
-<h3>🌾 Farm</h3>
-<p>Herbs Growing: <span id="growing">0</span></p>
-<button class="primary" onclick="plant()">Plant Herb (Cost 5)</button>
-<button class="primary" onclick="harvest()">Harvest</button>
-</div>
-
-<div class="card">
-<h3>🎒 Inventory</h3>
-<p>🌿 Herbs: <span id="herbs">0</span></p>
-<p>🧪 Potions: <span id="potions">0</span></p>
-</div>
-
-<div class="card">
-<h3>🧪 Healing Hut</h3>
-<button class="secondary" onclick="craft()">Craft Potion (5 herbs)</button>
-<button class="secondary" onclick="sell()">Sell Potion (+20 essence)</button>
-</div>
-
-</div>
+<div class="grid" id="grid"></div>
 
 <script>
 
-let essence = 0;
-let herbs = 0;
-let potions = 0;
-let growing = 0;
+let essence = 10;
+let grid = JSON.parse(localStorage.getItem("grid")) || Array(16).fill(null);
 
-function plant() {
-    if (essence >= 5) {
-        essence -= 5;
-        growing++;
-        save();
-        update();
+function draw() {
+    document.getElementById("essence").innerText = essence;
+    let gridEl = document.getElementById("grid");
+    gridEl.innerHTML = "";
+
+    grid.forEach((tile, i) => {
+        let div = document.createElement("div");
+        div.classList.add("tile");
+
+        if (!tile) {
+            div.classList.add("empty");
+            div.innerText = "🟫";
+        } else if (tile.stage === "growing") {
+            div.classList.add("growing");
+            div.innerText = "🌱";
+        } else {
+            div.classList.add("ready");
+            div.innerText = "🌾";
+        }
+
+        div.onclick = () => clickTile(i);
+        gridEl.appendChild(div);
+    });
+}
+
+function clickTile(i) {
+    let tile = grid[i];
+
+    if (!tile && essence >= 2) {
+        essence -= 2;
+        grid[i] = { stage: "growing" };
         
         setTimeout(() => {
-            herbs++;
-            growing--;
+            grid[i].stage = "ready";
             save();
-            update();
-        }, 5000);
+            draw();
+        }, 4000);
+
+    } else if (tile && tile.stage === "ready") {
+        essence += 5;
+        grid[i] = null;
     }
-}
 
-function harvest() {
-    // instant collect already handled by timer
-}
-
-function craft() {
-    if (herbs >= 5) {
-        herbs -= 5;
-        potions++;
-        save();
-        update();
-    }
-}
-
-function sell() {
-    if (potions >= 1) {
-        potions--;
-        essence += 20;
-        save();
-        update();
-    }
-}
-
-function update() {
-    document.getElementById("essence").innerText = essence;
-    document.getElementById("herbs").innerText = herbs;
-    document.getElementById("potions").innerText = potions;
-    document.getElementById("growing").innerText = growing;
+    save();
+    draw();
 }
 
 function save() {
-    localStorage.setItem("forestGame", JSON.stringify({
-        essence, herbs, potions, growing
-    }));
+    localStorage.setItem("grid", JSON.stringify(grid));
+    localStorage.setItem("essence", essence);
 }
 
 function load() {
-    let data = JSON.parse(localStorage.getItem("forestGame"));
-    if (data) {
-        essence = data.essence;
-        herbs = data.herbs;
-        potions = data.potions;
-        growing = data.growing;
-    }
+    let e = localStorage.getItem("essence");
+    if (e) essence = parseInt(e);
 }
 
 load();
-update();
+draw();
 
 </script>
 
