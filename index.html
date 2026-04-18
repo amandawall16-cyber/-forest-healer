@@ -3,28 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Forest Healer Idle</title>
+<title>Forest Healer</title>
 
 <style>
 body {
     margin: 0;
     font-family: -apple-system;
     background: linear-gradient(#1f3d2b, #3e6b4f);
-    color: #f4f4f4;
+    color: white;
     text-align: center;
 }
 
 .container {
     padding: 20px;
-}
-
-h1 {
-    margin-bottom: 10px;
-}
-
-.essence {
-    font-size: 24px;
-    margin: 10px 0;
 }
 
 button {
@@ -36,13 +27,14 @@ button {
     font-size: 16px;
 }
 
-.tap {
-    background: #7ecf9a;
-}
+.primary { background: #7ecf9a; }
+.secondary { background: #2f5e46; color: white; }
 
-.upgrade {
-    background: #2f5e46;
-    color: white;
+.card {
+    background: rgba(0,0,0,0.2);
+    padding: 10px;
+    border-radius: 12px;
+    margin: 10px;
 }
 </style>
 </head>
@@ -53,90 +45,99 @@ button {
 
 <h1>🌿 Forest Healer</h1>
 
-<div class="essence">Essence: <span id="essence">0</span> ✨</div>
+<h2>Essence: <span id="essence">0</span> ✨</h2>
 
-<button class="tap" onclick="tap()">Tap to Gather 🌱</button>
+<div class="card">
+<h3>🌾 Farm</h3>
+<p>Herbs Growing: <span id="growing">0</span></p>
+<button class="primary" onclick="plant()">Plant Herb (Cost 5)</button>
+<button class="primary" onclick="harvest()">Harvest</button>
+</div>
 
-<h3>Upgrades</h3>
+<div class="card">
+<h3>🎒 Inventory</h3>
+<p>🌿 Herbs: <span id="herbs">0</span></p>
+<p>🧪 Potions: <span id="potions">0</span></p>
+</div>
 
-<button class="upgrade" onclick="buyHerbs()">
-🌱 Herbs Lv <span id="herbLv">0</span> (+1/sec) Cost: <span id="herbCost">10</span>
-</button>
-
-<button class="upgrade" onclick="buyAnimals()">
-🐄 Animals Lv <span id="animalLv">0</span> (+3/sec) Cost: <span id="animalCost">25</span>
-</button>
-
-<button class="upgrade" onclick="buySpirits()">
-🍄 Spirits Lv <span id="spiritLv">0</span> (+5/sec) Cost: <span id="spiritCost">50</span>
-</button>
-
-<p>Idle Income: <span id="income">0</span>/sec</p>
+<div class="card">
+<h3>🧪 Healing Hut</h3>
+<button class="secondary" onclick="craft()">Craft Potion (5 herbs)</button>
+<button class="secondary" onclick="sell()">Sell Potion (+20 essence)</button>
+</div>
 
 </div>
 
 <script>
 
 let essence = 0;
-let perTap = 1;
-let perSecond = 0;
+let herbs = 0;
+let potions = 0;
+let growing = 0;
 
-let herbLv = 0;
-let animalLv = 0;
-let spiritLv = 0;
-
-function tap() {
-    essence += perTap;
-    update();
+function plant() {
+    if (essence >= 5) {
+        essence -= 5;
+        growing++;
+        save();
+        update();
+        
+        setTimeout(() => {
+            herbs++;
+            growing--;
+            save();
+            update();
+        }, 5000);
+    }
 }
 
-function buyHerbs() {
-    let cost = 10 * (herbLv + 1);
-    if (essence >= cost) {
-        essence -= cost;
-        herbLv++;
-        perSecond += 1;
+function harvest() {
+    // instant collect already handled by timer
+}
+
+function craft() {
+    if (herbs >= 5) {
+        herbs -= 5;
+        potions++;
+        save();
         update();
     }
 }
 
-function buyAnimals() {
-    let cost = 25 * (animalLv + 1);
-    if (essence >= cost) {
-        essence -= cost;
-        animalLv++;
-        perSecond += 3;
-        update();
-    }
-}
-
-function buySpirits() {
-    let cost = 50 * (spiritLv + 1);
-    if (essence >= cost) {
-        essence -= cost;
-        spiritLv++;
-        perSecond += 5;
+function sell() {
+    if (potions >= 1) {
+        potions--;
+        essence += 20;
+        save();
         update();
     }
 }
 
 function update() {
-    document.getElementById("essence").innerText = Math.floor(essence);
-    document.getElementById("income").innerText = perSecond;
-
-    document.getElementById("herbLv").innerText = herbLv;
-    document.getElementById("animalLv").innerText = animalLv;
-    document.getElementById("spiritLv").innerText = spiritLv;
-
-    document.getElementById("herbCost").innerText = 10 * (herbLv + 1);
-    document.getElementById("animalCost").innerText = 25 * (animalLv + 1);
-    document.getElementById("spiritCost").innerText = 50 * (spiritLv + 1);
+    document.getElementById("essence").innerText = essence;
+    document.getElementById("herbs").innerText = herbs;
+    document.getElementById("potions").innerText = potions;
+    document.getElementById("growing").innerText = growing;
 }
 
-setInterval(() => {
-    essence += perSecond;
-    update();
-}, 1000);
+function save() {
+    localStorage.setItem("forestGame", JSON.stringify({
+        essence, herbs, potions, growing
+    }));
+}
+
+function load() {
+    let data = JSON.parse(localStorage.getItem("forestGame"));
+    if (data) {
+        essence = data.essence;
+        herbs = data.herbs;
+        potions = data.potions;
+        growing = data.growing;
+    }
+}
+
+load();
+update();
 
 </script>
 
